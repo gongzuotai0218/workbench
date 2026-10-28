@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据流量工作台 · 联网版</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --ink:#1f2733; --muted:#6b7785;
+    --line:#e3e7ee; --brand:#2f6fed; --brand-d:#1f53c0; --danger:#d64545;
+    --ok:#1f9d6b; --soft:#eef2fb; --shadow:0 1px 3px rgba(20,30,50,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:14px; line-height:1.5;
+  }
+  header{
+    background:var(--panel); border-bottom:1px solid var(--line);
+    padding:14px 22px; display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:20;
+  }
+  header .title{font-size:17px; font-weight:700; letter-spacing:.5px}
+  header .sub{color:var(--muted); font-size:12px; margin-top:2px}
+  header .right{display:flex; align-items:center; gap:12px}
+  nav.tabs{display:flex; gap:6px; flex-wrap:wrap; padding:10px 22px 0; background:var(--panel); border-bottom:1px solid var(--line)}
+  nav.tabs button{
+    border:1px solid transparent; border-bottom:none; background:transparent;
+    padding:9px 16px; border-radius:8px 8px 0 0; cursor:pointer; color:var(--muted);
+    font-size:14px; font-weight:600;
+  }
+  nav.tabs button.active{background:var(--bg); color:var(--brand); border-color:var(--line)}
+  main{max-width:1160px; margin:0 auto; padding:20px 22px 60px}
+  section{display:none}
+  section.active{display:block}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px; box-shadow:var(--shadow); margin-bottom:18px}
+  .card h3{margin:0 0 14px; font-size:15px}
+  .grid{display:grid; gap:12px}
+  .row{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end}
+  label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px; font-weight:600}
+  input,select,textarea{
+    font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line);
+    border-radius:8px; padding:8px 10px; width:100%; outline:none;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--brand)}
+  textarea{resize:vertical; min-height:90px}
+  .field{flex:1 1 140px; min-width:130px}
+  .field.grow{flex:1 1 260px}
+  button.btn{
+    border:1px solid var(--brand); background:var(--brand); color:#fff; font-weight:600;
+    padding:9px 16px; border-radius:8px; cursor:pointer; font-size:14px; white-space:nowrap;
+  }
+  button.btn:hover{background:var(--brand-d)}
+  button.btn.ghost{background:var(--panel); color:var(--brand)}
+  button.btn.ghost:hover{background:var(--soft)}
+  button.btn.danger{border-color:var(--danger); background:var(--panel); color:var(--danger)}
+  button.btn.danger:hover{background:#fdecec}
+  button.btn.sm{padding:5px 10px; font-size:12.5px; border-radius:7px}
+  .actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:4px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; margin-bottom:14px}
+  .toolbar .field{flex:0 1 auto; min-width:120px}
+  table{width:100%; border-collapse:collapse; font-size:13.5px}
+  th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--muted); font-weight:600; font-size:12.5px; background:var(--soft)}
+  tbody tr:hover{background:#fafbfd}
+  td.num{text-align:right; font-variant-numeric:tabular-nums}
+  .tag{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:var(--soft); color:var(--brand); border:1px solid var(--line)}
+  .tag.c1{background:#fdeef0;color:#b23a4a;border-color:#f3d3d8}
+  .tag.c2{background:#eef4ff;color:#2f6fed;border-color:#d6e2ff}
+  .tag.c3{background:#eafaf2;color:#1f9d6b;border-color:#cdeede}
+  .tag.c4{background:#fff6e8;color:#c07d18;border-color:#f3e0c0}
+  .empty{color:var(--muted); text-align:center; padding:34px 10px; font-size:13.5px}
+  .hint{color:var(--muted); font-size:12px; margin:6px 0 0}
+  .msg{font-size:12.5px; color:var(--ok); min-height:16px; margin-top:8px}
+  .msg.err{color:var(--danger)}
+  .stat-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px}
+  .stat{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow)}
+  .stat .k{color:var(--muted); font-size:12px}
+  .stat .v{font-size:22px; font-weight:700; margin-top:4px; font-variant-numeric:tabular-nums}
+  .rank{display:flex; flex-direction:column; gap:8px}
+  .rank .item{display:flex; align-items:center; gap:10px; font-size:13px}
+  .rank .nm{flex:0 0 150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .rank .bar{flex:1; height:14px; background:var(--soft); border-radius:7px; overflow:hidden}
+  .rank .bar>i{display:block; height:100%; background:var(--brand)}
+  .rank .val{flex:0 0 80px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)}
+  .chart-wrap{width:100%; overflow:hidden}
+  .chart-wrap svg{width:100%; height:auto; display:block}
+  .modal{position:fixed; inset:0; background:rgba(20,30,50,.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px}
+  .modal.open{display:flex}
+  .modal .box{background:var(--panel); border-radius:12px; max-width:680px; width:100%; max-height:82vh; overflow:auto; padding:22px; box-shadow:0 10px 40px rgba(0,0,0,.25)}
+  .modal .box h3{margin-top:0}
+  .modal .close{float:right; cursor:pointer; color:var(--muted); font-size:20px; line-height:1; border:none; background:none}
+  .kv{font-size:13.5px; line-height:1.7}
+  .kv b{color:var(--muted); font-weight:600; margin-right:6px}
+  .acct-item{display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px}
+  .acct-item .nm{flex:1; font-weight:600}
+  .acct-item .st{font-size:12px; color:var(--muted)}
+  .acct-item.disabled .nm{color:var(--muted); text-decoration:line-through}
+  .small{font-size:12px; color:var(--muted)}
+  .banner{background:#fff6e8; color:#c07d18; border:1px solid #f3e0c0; padding:8px 14px; border-radius:8px; font-size:12.5px; margin:0 22px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="title">数据流量工作台 · 联网版</div>
+    <div class="sub">短视频矩阵 · 联网多人共创 · 数据在云端服务</div>
+  </div>
+  <div class="right">
+    <span class="small" id="conn">连接中…</span>
+    <button class="btn ghost sm" id="refreshBtn">刷新</button>
+  </div>
+</header>
+
+<div class="banner" id="banner" style="display:none"></div>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="idea" class="active">灵感库</button>
+  <button data-tab="copy">文案库</button>
+  <button data-tab="hit">爆款库</button>
+  <button data-tab="board">看板</button>
+  <button data-tab="accounts">账号管理</button>
+</nav>
+
+<main>
+  <!-- 灵感库 -->
+  <section id="sec-idea" class="active">
+    <div class="card">
+      <h3 id="ideaFormTitle">添加灵感</h3>
+      <div class="row">
+        <div class="field grow"><label>灵感标题</label><input type="text" id="i_title" placeholder="一句话点子"></div>
+        <div class="field"><label>所属账号</label><select id="i_account"></select></div>
+        <div class="field"><label>分类</label>
+          <select id="i_category">
+            <option value="客户痛点">客户痛点</option>
+            <option value="行业痛点">行业痛点</option>
+            <option value="科普">科普</option>
+            <option value="人设">人设</option>
+          </select>
+        </div>
+        <div class="field"><label>状态</label>
+          <select id="i_status">
+            <option value="想拍">想拍</option>
+            <option value="已写文案">已写文案</option>
+            <option value="已发">已发</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="field grow"><label>触发来源（刷到/客户说的/自己想的）</label><input type="text" id="i_source" placeholder="选填"></div>
+        <div class="field"><label>关联文案</label><select id="i_copy"></select></div>
+        <div class="field"><label>记录日期</label><input type="date" id="i_date"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="field grow"><label>备注</label><textarea id="i_note" placeholder="选填"></textarea></div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="i_save">保存</button>
+        <button class="btn ghost" id="i_reset">清空表单</button>
+      </div>
+      <div class="msg" id="i_msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="field"><label>按账号筛选</label><select id="i_f_account"></select></div>
+        <div class="field"><label>按分类筛选</label>
+          <select id="i_f_category">
+            <option value="">全部分类</option>
+            <option value="客户痛点">客户痛点</option>
+            <option value="行业痛点">行业痛点</option>
+            <option value="科普">科普</option>
+            <option value="人设">人设</option>
+          </select>
+        </div>
+        <div class="field"><label>按状态筛选</label>
+          <select id="i_f_status">
+            <option value="">全部状态</option>
+            <option value="想拍">想拍</option>
+            <option value="已写文案">已写文案</option>
+            <option value="已发">已发</option>
+          </select>
+        </div>
+        <div class="field grow"><label>搜索（标题 / 来源 / 账号）</label><input type="text" id="i_search" placeholder="输入关键词"></div>
+      </div>
+      <div id="ideaTable"></div>
+    </div>
+  </section>
+
+  <!-- 文案库 -->
+  <section id="sec-copy">
+    <div class="card">
+      <h3 id="copyFormTitle">添加文案</h3>
+      <div class="row">
+        <div class="field grow"><label>标题</label><input type="text" id="c_title" placeholder="文案标题"></div>
+        <div class="field"><label>所属账号</label><select id="c_account"></select></div>
+        <div class="field"><label>写/发布日期</label><input type="date" id="c_date"></div>
+        <div class="field"><label>分类</label>
+          <select id="c_category">
+            <option value="客户痛点">客户痛点</option>
+            <option value="行业痛点">行业痛点</option>
+            <option value="科普">科普</option>
+            <option value="人设">人设</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="field grow"><label>正文内容</label><textarea id="c_body" placeholder="粘贴或撰写文案正文"></textarea></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="field grow"><label>备注（投放效果 / 改了几版等）</label><textarea id="c_note" placeholder="选填"></textarea></div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="c_save">保存</button>
+        <button class="btn ghost" id="c_reset">清空表单</button>
+      </div>
+      <div class="msg" id="c_msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="field"><label>按账号筛选</label><select id="c_f_account"></select></div>
+        <div class="field"><label>按分类筛选</label>
+          <select id="c_f_category">
+            <option value="">全部分类</option>
+            <option value="客户痛点">客户痛点</option>
+            <option value="行业痛点">行业痛点</option>
+            <option value="科普">科普</option>
+            <option value="人设">人设</option>
+          </select>
+        </div>
+        <div class="field grow"><label>搜索（标题 / 正文 / 账号）</label><input type="text" id="c_search" placeholder="输入关键词"></div>
+      </div>
+      <div id="copyTable"></div>
+    </div>
+  </section>
+
+  <!-- 爆款库 -->
+  <section id="sec-hit">
+    <div class="card">
+      <h3 id="hitFormTitle">添加爆款视频</h3>
+      <div class="row">
+        <div class="field grow"><label>视频标题 / 主题</label><input type="text" id="h_title" placeholder="视频标题"></div>
+        <div class="field"><label>所属账号</label><select id="h_account"></select></div>
+        <div class="field"><label>爆款日期</label><input type="date" id="h_date"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="field grow"><label>关键数据（播放 / 点赞等，证明它爆）</label><input type="text" id="h_key" placeholder="如：播放 86w / 点赞 3.2w"></div>
+        <div class="field"><label>关联文案</label><select id="h_copy"></select></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="field grow"><label>为什么爆（归因分析）</label><textarea id="h_why" placeholder="你的分析"></textarea></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="field grow"><label>可复用方法 / 备注</label><textarea id="h_method" placeholder="选填"></textarea></div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="h_save">保存</button>
+        <button class="btn ghost" id="h_reset">清空表单</button>
+      </div>
+      <div class="msg" id="h_msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="field"><label>按账号筛选</label><select id="h_f_account"></select></div>
+        <div class="field grow"><label>搜索（标题 / 账号 / 关键数据）</label><input type="text" id="h_search" placeholder="输入关键词"></div>
+      </div>
+      <div id="hitTable"></div>
+    </div>
+  </section>
+
+  <!-- 看板 -->
+  <section id="sec-board">
+    <div class="card">
+      <div class="toolbar">
+        <div class="field"><label>账号</label><select id="b_account"></select></div>
+        <div class="hint" style="flex:1">统计基于文案库、爆款库、灵感库，多人实时共创后自动汇总。</div>
+      </div>
+    </div>
+
+    <div class="stat-grid" id="b_stats"></div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="card"><h3>各账号文案数排行</h3><div class="rank" id="b_rankCopyAcc"></div></div>
+      <div class="card"><h3>各账号爆款数排行</h3><div class="rank" id="b_rankHitAcc"></div></div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr; margin-top:18px">
+      <div class="card"><h3>文案分类分布</h3><div class="rank" id="b_catDist"></div></div>
+      <div class="card"><h3>灵感状态分布</h3><div class="rank" id="b_ideaSt"></div></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>文案按月新增</h3>
+      <div class="chart-wrap" id="b_chart"></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>文案被爆款引用排行（TOP）</h3>
+      <div class="rank" id="b_rankCopyRef"></div>
+    </div>
+  </section>
+
+  <!-- 账号管理 -->
+  <section id="sec-accounts">
+    <div class="card">
+      <h3>账号清单</h3>
+      <div class="row">
+        <div class="field grow"><label>新增账号名称</label><input type="text" id="a_new" placeholder="如：周工程 / 微电子面板"></div>
+        <div class="field" style="flex:0"><label>&nbsp;</label><button class="btn" id="a_add">添加账号</button></div>
+      </div>
+      <div class="hint">停用的账号不会出现在数据录入下拉中，但历史数据保留可查。</div>
+      <div id="acctList" style="margin-top:14px"></div>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <button class="close" id="modalClose">&times;</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 服务端协作数据层 ============ */
+const TYPES=['accounts','idea','copy','hit'];
+let state={accounts:[],idea:[],copy:[],hit:[]};
+let currentTab='idea';
+let connected=false;
+
+async function apiLoad(){
+  const r=await fetch('/api/data'); if(!r.ok) throw new Error('HTTP '+r.status);
+  const d=await r.json();
+  for(const k of TYPES) state[k]=Array.isArray(d[k])?d[k]:[];
+  connected=true; setConn();
+}
+function apiSave(type){
+  return fetch('/api/'+type,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(state[type]||[])}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); connected=true; setConn(); });
+}
+function setConn(){
+  const e=document.getElementById('conn'); if(!e) return;
+  e.textContent=connected?'● 已连接(局域网)':'○ 未连接服务器';
+  e.style.color=connected?'#1f9d6b':'#d64545';
+}
+function showBanner(txt){ const b=document.getElementById('banner'); b.textContent=txt; b.style.display=txt?'block':'none'; }
+function persist(type){
+  apiSave(type).catch(e=>{ connected=false; setConn(); alert('保存到服务器失败：'+e.message+'。请点右上角「刷新」重试，并确认服务在运行。'); });
+}
+function reloadAll(){
+  apiLoad().then(()=>{ render(currentTab); }).catch(()=>{ connected=false; setConn(); showBanner('未连接到服务器。请确认服务已启动，并通过分配给你的地址打开本页。'); });
+}
+function softRefresh(){
+  if(currentTab==='idea') drawIdeaTable();
+  else if(currentTab==='copy') drawCopyTable();
+  else if(currentTab==='hit') drawHitTable();
+  else if(currentTab==='board') drawBoard();
+  else if(currentTab==='accounts') renderAccounts();
+}
+setInterval(softRefresh,20000);
+
+/* ============ 工具 ============ */
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmt = n => Number(n).toLocaleString('en-US');
+const today = () => new Date().toISOString().slice(0,10);
+
+/* ============ 账号 ============ */
+function activeAccounts(){ return state.accounts.filter(a=>!a.disabled); }
+function accountName(id){ const a=state.accounts.find(x=>x.id===id); return a?a.name:'(已删除)'; }
+function fillAccountSelect(sel, withAll, allLabel){
+  const cur = sel.value;
+  let html = withAll ? `<option value="">${allLabel||'全部账号'}</option>` : '';
+  state.accounts.forEach(a=>{ if(!a.disabled||!withAll) html+=`<option value="${a.id}">${esc(a.name)}</option>`; });
+  sel.innerHTML = html;
+  if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+}
+function fillCopySelect(sel){
+  const cur=sel.value;
+  let html='<option value="">（无）</option>';
+  state.copy.forEach(c=>{ html+=`<option value="${c.id}">${esc(c.title||'(无标题)')}</option>`; });
+  sel.innerHTML=html;
+  if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+}
+function copyTitle(id){ const c=state.copy.find(x=>x.id===id); return c?c.title:'(已删除)'; }
+
+/* ============ 标签页 ============ */
+document.getElementById('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const tab=b.dataset.tab; currentTab=tab;
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));
+  document.querySelectorAll('main section').forEach(s=>s.classList.toggle('active',s.id==='sec-'+tab));
+  render(tab);
+});
+function render(tab){
+  if(tab==='idea') renderIdea();
+  else if(tab==='copy') renderCopy();
+  else if(tab==='hit') renderHit();
+  else if(tab==='board') renderBoard();
+  else if(tab==='accounts') renderAccounts();
+}
+
+/* ============ 灵感库 ============ */
+let iEditId=null;
+function resetIdeaForm(){
+  iEditId=null; document.getElementById('ideaFormTitle').textContent='添加灵感';
+  ['i_title','i_source','i_note'].forEach(id=>document.getElementById(id).value='');
+  fillAccountSelect(document.getElementById('i_account'),false);
+  fillCopySelect(document.getElementById('i_copy'));
+  document.getElementById('i_category').value='客户痛点';
+  document.getElementById('i_status').value='想拍';
+  document.getElementById('i_date').value=today();
+  document.getElementById('i_msg').textContent='';
+}
+function renderIdea(){
+  fillAccountSelect(document.getElementById('i_account'),false);
+  fillAccountSelect(document.getElementById('i_f_account'),true,'全部账号');
+  fillCopySelect(document.getElementById('i_copy'));
+  if(!document.getElementById('i_date').value) document.getElementById('i_date').value=today();
+  drawIdeaTable();
+}
+function drawIdeaTable(){
+  const aid=document.getElementById('i_f_account').value;
+  const cat=document.getElementById('i_f_category').value;
+  const st=document.getElementById('i_f_status').value;
+  const q=document.getElementById('i_search').value.trim().toLowerCase();
+  let rows=state.idea.filter(r=>{
+    if(aid&&r.accountId!==aid) return false;
+    if(cat&&r.category!==cat) return false;
+    if(st&&r.status!==st) return false;
+    if(q){ const hay=(r.title+' '+(r.source||'')+' '+accountName(r.accountId)).toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const box=document.getElementById('ideaTable');
+  if(!rows.length){ box.innerHTML='<div class="empty">暂无灵感。在上方添加，或调整筛选/搜索。</div>'; return; }
+  let html='<table><thead><tr><th>灵感标题</th><th>账号</th><th>分类</th><th>状态</th><th>关联文案</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    html+=`<tr><td><a href="javascript:void(0)" onclick="viewIdea('${r.id}')" style="color:var(--brand);font-weight:600">${esc(r.title||'(无标题)')}</a></td>
+      <td>${esc(accountName(r.accountId))}</td>
+      <td><span class="tag ${CATCLASS[r.category]||''}">${esc(r.category||'')}</span></td>
+      <td>${esc(r.status||'')}</td>
+      <td>${r.copyId?esc(copyTitle(r.copyId)):'-'}</td>
+      <td>${esc((r.note||'').slice(0,16))}${(r.note||'').length>16?'…':''}</td>
+      <td><div class="actions">
+        <button class="btn ghost sm" onclick="editIdea('${r.id}')">编辑</button>
+        <button class="btn danger sm" onclick="delIdea('${r.id}')">删除</button>
+      </div></td></tr>`;
+  });
+  html+='</tbody></table>';
+  box.innerHTML=html;
+}
+document.getElementById('i_save').onclick=()=>{
+  const aid=document.getElementById('i_account').value;
+  const title=document.getElementById('i_title').value.trim();
+  const msg=document.getElementById('i_msg'); msg.className='msg';
+  if(!aid){ msg.textContent='请先选择账号。'; msg.className='msg err'; return; }
+  if(!title){ msg.textContent='请填写灵感标题。'; msg.className='msg err'; return; }
+  const rec={ accountId:aid, title,
+    date:document.getElementById('i_date').value,
+    category:document.getElementById('i_category').value,
+    status:document.getElementById('i_status').value,
+    source:document.getElementById('i_source').value,
+    copyId:document.getElementById('i_copy').value||null,
+    note:document.getElementById('i_note').value };
+  let data=state.idea.slice();
+  if(iEditId){ const i=data.findIndex(x=>x.id===iEditId); if(i>=0) data[i]={...data[i],...rec}; msg.textContent='已更新。'; }
+  else { rec.id=uid(); data.push(rec); msg.textContent='已保存。'; }
+  state.idea=data; persist('idea'); resetIdeaForm(); drawIdeaTable();
+};
+document.getElementById('i_reset').onclick=resetIdeaForm;
+window.editIdea=id=>{
+  const r=state.idea.find(x=>x.id===id); if(!r) return;
+  iEditId=id; document.getElementById('ideaFormTitle').textContent='编辑灵感';
+  document.getElementById('i_account').value=r.accountId;
+  document.getElementById('i_title').value=r.title||'';
+  document.getElementById('i_category').value=r.category||'客户痛点';
+  document.getElementById('i_status').value=r.status||'想拍';
+  document.getElementById('i_source').value=r.source||'';
+  document.getElementById('i_date').value=r.date||today();
+  fillCopySelect(document.getElementById('i_copy'));
+  document.getElementById('i_copy').value=r.copyId||'';
+  document.getElementById('i_note').value=r.note||'';
+  document.getElementById('i_msg').textContent='编辑中…';
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.delIdea=id=>{ if(!confirm('确定删除这条灵感？')) return; state.idea=state.idea.filter(x=>x.id!==id); persist('idea'); drawIdeaTable(); };
+window.viewIdea=id=>{
+  const r=state.idea.find(x=>x.id===id); if(!r) return;
+  openModal(`<h3>${esc(r.title||'(无标题)')}</h3>
+    <div class="kv">
+      <div><b>账号</b>${esc(accountName(r.accountId))}</div>
+      <div><b>分类</b>${esc(r.category||'-')}</div>
+      <div><b>状态</b>${esc(r.status||'-')}</div>
+      <div><b>触发来源</b>${esc(r.source||'-')}</div>
+      <div><b>关联文案</b>${r.copyId?esc(copyTitle(r.copyId)):'-'}</div>
+      <div><b>记录日期</b>${r.date||'-'}</div>
+    </div>
+    <h3 style="margin-top:16px">备注</h3>
+    <div class="kv" style="white-space:pre-wrap">${esc(r.note||'(空)')}</div>`);
+};
+['i_f_account','i_f_category','i_f_status','i_search'].forEach(id=>document.getElementById(id).addEventListener('input',drawIdeaTable));
+
+/* ============ 文案库 ============ */
+let cEditId=null;
+function resetCopyForm(){
+  cEditId=null; document.getElementById('copyFormTitle').textContent='添加文案';
+  ['c_title','c_body','c_note'].forEach(id=>document.getElementById(id).value='');
+  fillAccountSelect(document.getElementById('c_account'),false);
+  document.getElementById('c_date').value=today();
+  document.getElementById('c_category').value='客户痛点';
+  document.getElementById('c_msg').textContent='';
+}
+function renderCopy(){
+  fillAccountSelect(document.getElementById('c_account'),false);
+  fillAccountSelect(document.getElementById('c_f_account'),true,'全部账号');
+  if(!document.getElementById('c_date').value) document.getElementById('c_date').value=today();
+  drawCopyTable();
+}
+const CATCLASS={'客户痛点':'c1','行业痛点':'c2','科普':'c3','人设':'c4'};
+function drawCopyTable(){
+  const aid=document.getElementById('c_f_account').value;
+  const cat=document.getElementById('c_f_category').value;
+  const q=document.getElementById('c_search').value.trim().toLowerCase();
+  let rows=state.copy.filter(r=>{
+    if(aid&&r.accountId!==aid) return false;
+    if(cat&&r.category!==cat) return false;
+    if(q){ const hay=(r.title+' '+(r.body||'')+' '+accountName(r.accountId)).toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const box=document.getElementById('copyTable');
+  if(!rows.length){ box.innerHTML='<div class="empty">暂无文案。在上方添加，或调整筛选/搜索。</div>'; return; }
+  let html='<table><thead><tr><th>标题</th><th>账号</th><th>日期</th><th>分类</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    html+=`<tr><td><a href="javascript:void(0)" onclick="viewCopy('${r.id}')" style="color:var(--brand);font-weight:600">${esc(r.title||'(无标题)')}</a></td>
+      <td>${esc(accountName(r.accountId))}</td><td>${r.date||''}</td>
+      <td><span class="tag ${CATCLASS[r.category]||''}">${esc(r.category||'')}</span></td>
+      <td>${esc((r.note||'').slice(0,20))}${(r.note||'').length>20?'…':''}</td>
+      <td><div class="actions">
+        <button class="btn ghost sm" onclick="editCopy('${r.id}')">编辑</button>
+        <button class="btn danger sm" onclick="delCopy('${r.id}')">删除</button>
+      </div></td></tr>`;
+  });
+  html+='</tbody></table>';
+  box.innerHTML=html;
+}
+document.getElementById('c_save').onclick=()=>{
+  const aid=document.getElementById('c_account').value;
+  const title=document.getElementById('c_title').value.trim();
+  const msg=document.getElementById('c_msg'); msg.className='msg';
+  if(!aid){ msg.textContent='请先选择账号。'; msg.className='msg err'; return; }
+  if(!title){ msg.textContent='请填写标题。'; msg.className='msg err'; return; }
+  const rec={ accountId:aid, title,
+    date:document.getElementById('c_date').value,
+    category:document.getElementById('c_category').value,
+    body:document.getElementById('c_body').value,
+    note:document.getElementById('c_note').value };
+  let data=state.copy.slice();
+  if(cEditId){ const i=data.findIndex(x=>x.id===cEditId); if(i>=0) data[i]={...data[i],...rec}; msg.textContent='已更新。'; }
+  else { rec.id=uid(); data.push(rec); msg.textContent='已保存。'; }
+  state.copy=data; persist('copy'); resetCopyForm(); drawCopyTable();
+};
+document.getElementById('c_reset').onclick=resetCopyForm;
+window.editCopy=id=>{
+  const r=state.copy.find(x=>x.id===id); if(!r) return;
+  cEditId=id; document.getElementById('copyFormTitle').textContent='编辑文案';
+  document.getElementById('c_account').value=r.accountId;
+  document.getElementById('c_title').value=r.title||'';
+  document.getElementById('c_date').value=r.date||today();
+  document.getElementById('c_category').value=r.category||'客户痛点';
+  document.getElementById('c_body').value=r.body||'';
+  document.getElementById('c_note').value=r.note||'';
+  document.getElementById('c_msg').textContent='编辑中…';
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.delCopy=id=>{ if(!confirm('确定删除这篇文案？')) return; state.copy=state.copy.filter(x=>x.id!==id); persist('copy'); drawCopyTable(); };
+window.viewCopy=id=>{
+  const r=state.copy.find(x=>x.id===id); if(!r) return;
+  openModal(`<h3>${esc(r.title||'(无标题)')}</h3>
+    <div class="kv">
+      <div><b>账号</b>${esc(accountName(r.accountId))}</div>
+      <div><b>日期</b>${r.date||'-'}</div>
+      <div><b>分类</b>${esc(r.category||'-')}</div>
+      <div><b>备注</b>${esc(r.note||'-')}</div>
+    </div>
+    <h3 style="margin-top:16px">正文</h3>
+    <div class="kv" style="white-space:pre-wrap">${esc(r.body||'(空)')}</div>`);
+};
+['c_f_account','c_f_category','c_search'].forEach(id=>document.getElementById(id).addEventListener('input',drawCopyTable));
+
+/* ============ 爆款库 ============ */
+let hEditId=null;
+function resetHitForm(){
+  hEditId=null; document.getElementById('hitFormTitle').textContent='添加爆款视频';
+  ['h_title','h_key','h_why','h_method'].forEach(id=>document.getElementById(id).value='');
+  fillAccountSelect(document.getElementById('h_account'),false);
+  fillCopySelect(document.getElementById('h_copy'));
+  document.getElementById('h_date').value=today();
+  document.getElementById('h_msg').textContent='';
+}
+function renderHit(){
+  fillAccountSelect(document.getElementById('h_account'),false);
+  fillAccountSelect(document.getElementById('h_f_account'),true,'全部账号');
+  fillCopySelect(document.getElementById('h_copy'));
+  if(!document.getElementById('h_date').value) document.getElementById('h_date').value=today();
+  drawHitTable();
+}
+function drawHitTable(){
+  const aid=document.getElementById('h_f_account').value;
+  const q=document.getElementById('h_search').value.trim().toLowerCase();
+  let rows=state.hit.filter(r=>{
+    if(aid&&r.accountId!==aid) return false;
+    if(q){ const hay=(r.title+' '+accountName(r.accountId)+' '+(r.key||'')).toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const box=document.getElementById('hitTable');
+  if(!rows.length){ box.innerHTML='<div class="empty">暂无爆款记录。在上方添加，或调整筛选/搜索。</div>'; return; }
+  let html='<table><thead><tr><th>标题/主题</th><th>账号</th><th>日期</th><th>关键数据</th><th>为什么爆</th><th>关联文案</th><th>操作</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    html+=`<tr><td><a href="javascript:void(0)" onclick="viewHit('${r.id}')" style="color:var(--brand);font-weight:600">${esc(r.title||'(无标题)')}</a></td>
+      <td>${esc(accountName(r.accountId))}</td><td>${r.date||''}</td>
+      <td>${esc((r.key||'').slice(0,30))}${(r.key||'').length>30?'…':''}</td>
+      <td>${esc((r.why||'').slice(0,24))}${(r.why||'').length>24?'…':''}</td>
+      <td>${r.copyId?esc(copyTitle(r.copyId)):'-'}</td>
+      <td><div class="actions">
+        <button class="btn ghost sm" onclick="editHit('${r.id}')">编辑</button>
+        <button class="btn danger sm" onclick="delHit('${r.id}')">删除</button>
+      </div></td></tr>`;
+  });
+  html+='</tbody></table>';
+  box.innerHTML=html;
+}
+document.getElementById('h_save').onclick=()=>{
+  const aid=document.getElementById('h_account').value;
+  const title=document.getElementById('h_title').value.trim();
+  const msg=document.getElementById('h_msg'); msg.className='msg';
+  if(!aid){ msg.textContent='请先选择账号。'; msg.className='msg err'; return; }
+  if(!title){ msg.textContent='请填写视频标题/主题。'; msg.className='msg err'; return; }
+  const rec={ accountId:aid, title,
+    date:document.getElementById('h_date').value,
+    key:document.getElementById('h_key').value,
+    why:document.getElementById('h_why').value,
+    copyId:document.getElementById('h_copy').value||null,
+    method:document.getElementById('h_method').value };
+  let data=state.hit.slice();
+  if(hEditId){ const i=data.findIndex(x=>x.id===hEditId); if(i>=0) data[i]={...data[i],...rec}; msg.textContent='已更新。'; }
+  else { rec.id=uid(); data.push(rec); msg.textContent='已保存。'; }
+  state.hit=data; persist('hit'); resetHitForm(); drawHitTable();
+};
+document.getElementById('h_reset').onclick=resetHitForm;
+window.editHit=id=>{
+  const r=state.hit.find(x=>x.id===id); if(!r) return;
+  hEditId=id; document.getElementById('hitFormTitle').textContent='编辑爆款视频';
+  document.getElementById('h_account').value=r.accountId;
+  document.getElementById('h_title').value=r.title||'';
+  document.getElementById('h_date').value=r.date||today();
+  document.getElementById('h_key').value=r.key||'';
+  fillCopySelect(document.getElementById('h_copy'));
+  document.getElementById('h_copy').value=r.copyId||'';
+  document.getElementById('h_why').value=r.why||'';
+  document.getElementById('h_method').value=r.method||'';
+  document.getElementById('h_msg').textContent='编辑中…';
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.delHit=id=>{ if(!confirm('确定删除这条爆款记录？')) return; state.hit=state.hit.filter(x=>x.id!==id); persist('hit'); drawHitTable(); };
+window.viewHit=id=>{
+  const r=state.hit.find(x=>x.id===id); if(!r) return;
+  openModal(`<h3>${esc(r.title||'(无标题)')}</h3>
+    <div class="kv">
+      <div><b>账号</b>${esc(accountName(r.accountId))}</div>
+      <div><b>日期</b>${r.date||'-'}</div>
+      <div><b>关键数据</b>${esc(r.key||'-')}</div>
+      <div><b>关联文案</b>${r.copyId?esc(copyTitle(r.copyId)):'-'}</div>
+    </div>
+    <h3 style="margin-top:16px">为什么爆</h3>
+    <div class="kv" style="white-space:pre-wrap">${esc(r.why||'(空)')}</div>
+    <h3 style="margin-top:16px">可复用方法 / 备注</h3>
+    <div class="kv" style="white-space:pre-wrap">${esc(r.method||'(空)')}</div>`);
+};
+['h_f_account','h_search'].forEach(id=>document.getElementById(id).addEventListener('input',drawHitTable));
+
+/* ============ 看板 ============ */
+function renderBoard(){
+  fillAccountSelect(document.getElementById('b_account'),true,'全部账号（汇总）');
+  drawBoard();
+}
+document.getElementById('b_account').addEventListener('change',drawBoard);
+function buildRank(items,color){
+  if(!items.length) return '<div class="empty">暂无数据</div>';
+  const max=Math.max(...items.map(i=>i.value),1);
+  return items.map(it=>`<div class="item"><div class="nm">${esc(it.name)}</div><div class="bar"><i style="width:${max?it.value/max*100:0}%;background:${color}"></i></div><div class="val">${fmt(it.value)}</div></div>`).join('');
+}
+function drawBoard(){
+  const aid=document.getElementById('b_account').value;
+  const f=a=> aid? a.filter(x=>x.accountId===aid) : a;
+  const ideas=f(state.idea), copy=f(state.copy), hits=f(state.hit);
+
+  const pending=ideas.filter(x=>x.status==='想拍').length;
+  const stats=[['文案数',copy.length],['爆款数',hits.length],['灵感数',ideas.length],['待拍灵感',pending]];
+  document.getElementById('b_stats').innerHTML=stats.map(([t,v])=>
+    `<div class="stat"><div class="k">${t}</div><div class="v">${fmt(v)}</div></div>`).join('');
+
+  const byAcc=(arr)=>{ const m={}; arr.forEach(r=>{ m[r.accountId]=(m[r.accountId]||0)+1; });
+    return Object.entries(m).map(([id,v])=>({name:accountName(id),value:v})).sort((a,b)=>b.value-a.value).slice(0,10); };
+  document.getElementById('b_rankCopyAcc').innerHTML=buildRank(byAcc(copy),'#2f6fed');
+  document.getElementById('b_rankHitAcc').innerHTML=buildRank(byAcc(hits),'#1f9d6b');
+
+  const cats=['客户痛点','行业痛点','科普','人设'];
+  document.getElementById('b_catDist').innerHTML=buildRank(cats.map(c=>({name:c,value:copy.filter(x=>x.category===c).length})),'#2f6fed');
+  const sts=['想拍','已写文案','已发'];
+  document.getElementById('b_ideaSt').innerHTML=buildRank(sts.map(s=>({name:s,value:ideas.filter(x=>x.status===s).length})),'#c07d18');
+
+  const months={};
+  copy.forEach(r=>{ if(r.date){ const m=r.date.slice(0,7); months[m]=(months[m]||0)+1; } });
+  const mlabels=Object.keys(months).sort();
+  drawBars(mlabels, mlabels.map(m=>months[m]), '#2f6fed');
+
+  const ref={};
+  hits.forEach(h=>{ if(h.copyId) ref[h.copyId]=(ref[h.copyId]||0)+1; });
+  const refItems=Object.entries(ref).map(([id,v])=>({name:copyTitle(id),value:v})).sort((a,b)=>b.value-a.value).slice(0,10);
+  document.getElementById('b_rankCopyRef').innerHTML=buildRank(refItems,'#1f9d6b');
+}
+function drawBars(labels, values, color){
+  const W=680,H=260,padL=48,padR=16,padT=16,padB=46;
+  const box=document.getElementById('b_chart');
+  if(!labels.length||values.every(v=>v===0)){ box.innerHTML='<div class="empty">暂无文案数据可绘图。</div>'; return; }
+  const maxV=Math.max(...values,1);
+  const n=labels.length;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const bw=plotW/n;
+  let grid='',yl='';
+  for(let g=0;g<=4;g++){ const v=maxV*g/4; const yy=padT+plotH*(1-v/maxV);
+    grid+=`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="#eef1f6"/>`;
+    yl+=`<text x="${padL-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="#9aa4b2">${fmt(Math.round(v))}</text>`;
+  }
+  let bars='',xl='';
+  labels.forEach((lb,i)=>{
+    const v=values[i]; const bh=plotH*(v/maxV);
+    const x=padL+bw*i+bw*0.18; const w=bw*0.64; const y=padT+plotH-bh;
+    bars+=`<rect x="${x}" y="${y}" width="${w}" height="${bh}" rx="3" fill="${color}"/>`;
+    if(bh>14) bars+=`<text x="${x+w/2}" y="${y-5}" text-anchor="middle" font-size="10.5" fill="#6b7785">${fmt(v)}</text>`;
+    let t=lb.length>6?lb.slice(2):lb;
+    xl+=`<text x="${padL+bw*i+bw/2}" y="${H-padB+18}" text-anchor="middle" font-size="10.5" fill="#9aa4b2">${esc(t)}</text>`;
+  });
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="柱状图">
+    ${grid}${yl}${bars}${xl}
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+plotH}" stroke="#d7dce4"/>
+    <line x1="${padL}" y1="${padT+plotH}" x2="${W-padR}" y2="${padT+plotH}" stroke="#d7dce4"/>
+  </svg>`;
+}
+
+/* ============ 账号管理 ============ */
+function renderAccounts(){
+  const list=state.accounts;
+  const box=document.getElementById('acctList');
+  if(!list.length){ box.innerHTML='<div class="empty">还没有账号，先在上方添加一个。</div>'; return; }
+  box.innerHTML=list.map(a=>`<div class="acct-item ${a.disabled?'disabled':''}" data-id="${a.id}">
+    <div class="nm">${esc(a.name)}</div>
+    <div class="st">${a.disabled?'已停用':'启用中'}</div>
+    <button class="btn ghost sm" onclick="renameAcct('${a.id}')">改名</button>
+    <button class="btn ghost sm" onclick="toggleAcct('${a.id}')">${a.disabled?'启用':'停用'}</button>
+    <button class="btn danger sm" onclick="delAcct('${a.id}')">删除</button>
+  </div>`).join('');
+}
+document.getElementById('a_add').onclick=()=>{
+  const inp=document.getElementById('a_new'); const name=inp.value.trim();
+  if(!name){ alert('请输入账号名称'); return; }
+  const accts=state.accounts.slice();
+  if(accts.some(a=>a.name===name)){ alert('已存在同名账号'); return; }
+  accts.push({id:uid(),name,disabled:false}); state.accounts=accts; persist('accounts'); inp.value=''; renderAccounts();
+};
+window.renameAcct=id=>{
+  const a=state.accounts.find(x=>x.id===id); if(!a) return;
+  const n=prompt('修改账号名称：',a.name); if(n==null) return; const name=n.trim(); if(!name) return;
+  a.name=name; persist('accounts'); renderAccounts();
+};
+window.toggleAcct=id=>{
+  const a=state.accounts.find(x=>x.id===id); if(!a) return; a.disabled=!a.disabled;
+  persist('accounts'); renderAccounts();
+};
+window.delAcct=id=>{
+  const used={idea:state.idea.some(r=>r.accountId===id),copy:state.copy.some(c=>c.accountId===id),hit:state.hit.some(h=>h.accountId===id)};
+  const cnt=(used.idea?1:0)+(used.copy?1:0)+(used.hit?1:0);
+  if(cnt>0 && !confirm(`该账号在 ${cnt} 个模块有历史数据，删除账号将保留这些数据但显示为“(已删除)”。确定删除账号？`)) return;
+  state.accounts=state.accounts.filter(x=>x.id!==id); persist('accounts'); renderAccounts();
+};
+
+/* ============ 弹窗 ============ */
+function openModal(html){ document.getElementById('modalBody').innerHTML=html; document.getElementById('modal').classList.add('open'); }
+document.getElementById('modalClose').onclick=()=>document.getElementById('modal').classList.remove('open');
+document.getElementById('modal').addEventListener('click',e=>{ if(e.target.id==='modal') e.target.classList.remove('open'); });
+
+/* ============ 刷新按钮 ============ */
+document.getElementById('refreshBtn').onclick=reloadAll;
+
+/* ============ 启动 ============ */
+apiLoad().then(()=>{ render('idea'); }).catch(()=>{
+  connected=false; setConn();
+  showBanner('未连接到服务器。请通过服务分配的地址打开本页（不要直接双击本 html 文件）。');
+  render('idea');
+});
+</script>
+</body>
+</html>

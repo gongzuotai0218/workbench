@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: data-traffic-workbench
+    runtime: python
+    plan: free
+    buildCommand: "true"
+    startCommand: "python3 server.py"
+    healthCheckPath: /api/data
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13"
